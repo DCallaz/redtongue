@@ -104,6 +104,34 @@ public class TCP {
 		return -1;
 	}
 
+	public void sendName(String name) {
+		try {
+			out.writeUTF(name);
+		} catch (IOException e) {
+			System.out.println(e);
+		}
+	}
+
+	public String recvName() {
+		try {
+			return in.readUTF();
+		} catch (IOException e) {
+			System.out.println(e);
+		}
+		return null;
+	}
+
+  public void close() {
+    try {
+      if (serv != null) {
+        serv.close();
+      }
+      sock.close();
+    } catch (IOException e) {
+      System.out.println("Could not close sockets");
+    }
+  }
+
 	public static void main(String[] args) {
 		if (args.length < 1) {
 			System.out.println("USAGE: TCP <mode 0/1>");

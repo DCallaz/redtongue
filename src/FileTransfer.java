@@ -11,31 +11,29 @@ public class FileTransfer {
 	private boolean mode;
 	private RandomAccessFile f;
 
-	private FileTransfer(boolean send_recv, String file) {
+	private FileTransfer(boolean send_recv, String file, TCP t) throws FileNotFoundException {
 		this.mode = send_recv;
 		if (mode == SEND) {
-			//TODO: open file for read
-			try {
-				f = new RandomAccessFile(file, "r");
-			} catch (FileNotFoundException e) {
-				e.printStackTrace();
-			}
+      t.sendName(file);
+			//open file for read
+      f = new RandomAccessFile(file, "r");
 		} else {
-			//TODO: open file for write
+      String fname = t.recvName();
+      if (file == null) {
+        file = fname;
+      }
+			//open file for write
 			try {
 				File f = new File(file);
 				Files.deleteIfExists(f.toPath());
-				this.f = new RandomAccessFile(file, "rw");
-			} catch (FileNotFoundException e) {
-				e.printStackTrace();
+        this.f = new RandomAccessFile(file, "rw");
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
 	}
 
-	private void send() {
-		TCP t = new TCP(TCP.SEND, null, 8199);
+	private void send(TCP t) {
 		byte[] array = new byte[500000000];
 		int size = 0;
 		try {
@@ -53,8 +51,7 @@ public class FileTransfer {
 		}
 	}
 
-	private void recv() {
-		TCP t = new TCP(TCP.RECV, null, 8199);
+	private void recv(TCP t) {
 		byte[] array;
 		int reps = t.recvSize();
 		System.out.println("Reps: "+reps);
@@ -75,14 +72,19 @@ public class FileTransfer {
 		}
 	}
 
-	public static void transfer(boolean send_recv, String file) {
-		FileTransfer f = new FileTransfer(send_recv, file);
+	public static void transfer(boolean send_recv, String file, TCP t)
+      throws FileNotFoundException {
+		FileTransfer f = new FileTransfer(send_recv, file, t);
 		if (f.mode == SEND) {
-			f.send();
+			f.send(t);
 		} else {
-			f.recv();
+			f.recv(t);
 		}
 	}
+
+  public static TCP getTCP(boolean send_recv) {
+    return new TCP(send_recv, null, 8199);
+  }
 
 	public static void main(String[] args) {
 		if (args.length < 1) {
@@ -91,6 +93,21 @@ public class FileTransfer {
 		}
 		int modei = Integer.parseInt(args[0]);
 		boolean mode = (modei == 0) ? RECV : SEND;
-		FileTransfer.transfer(mode, args[1]);
+
+    String file = null;
+    if (args.length >= 2) {
+      file = args[1];
+    } else if (args.length < 2 && mode == SEND) {
+      System.out.println("NOTE: Sender needs to specify a file to send");
+      System.exit(0);
+    }
+
+    try {
+      TCP t = getTCP(mode);
+		  FileTransfer.transfer(mode, file, t);
+      t.close();
+    } catch (FileNotFoundException e) {
+      System.out.println("Could not find file "+e.getMessage());
+    }
 	}
 }
