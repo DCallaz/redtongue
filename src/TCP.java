@@ -21,7 +21,7 @@ public class TCP {
 			try {
 				sock = new Socket(host, port);
 			} catch (IOException e) {
-				System.out.println("Unable to open sender socket");
+				System.out.println("Unable to open sender socket: "+e);
 			}
 		} else {
 			try {
@@ -38,6 +38,13 @@ public class TCP {
 			System.out.println("Could not start readers and writers");
 		}
 	}
+
+  public int getPort() {
+    if (serv != null) {
+      return serv.getLocalPort();
+    }
+    return -1;
+  }
 
 	public void send(byte[] bytes, int length, Progress prog, int chunk) throws Exception {
 		if (this.mode != SEND) {

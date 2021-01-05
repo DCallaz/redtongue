@@ -53,6 +53,16 @@ public class Finder {
       cont = false;
       t.join();
       addr = hosts.get(checkValid(name, hosts));
+
+      p = new SearchPacket(SearchPacket.PAIR, 1024);//TODO: get number here
+      p.send(addr.getIP(), 4446, sock);
+
+      p = new SearchPacket();
+      p.recv(sock);
+      System.out.println("control: "+p.getControl());
+      addr.setPort(p.getPort());
+      System.out.println("Recieved port number: "+addr.getPort());
+      addr.enableTCP(TCP.SEND);
     } catch (IOException e) {
       e.printStackTrace();
     } catch (InterruptedException e) {
@@ -61,9 +71,18 @@ public class Finder {
     return addr;
   }
 
-  public static InetAddress listen(String name) {
+  public static void listen(String name) {
     InetAddress addr = null;
     try {
+      Host mine = new Host(InetAddress.getLocalHost(), name);
+      Thread t = new Thread(new Runnable() {
+        @Override
+        public void run() {
+          mine.setPort(8199);
+          mine.enableTCP(TCP.RECV);
+        }
+      });
+      t.start();
       MulticastSocket sock = new MulticastSocket(4446);
       InetAddress group = InetAddress.getByName("224.0.113.0");
       sock.joinGroup(group);
@@ -71,19 +90,27 @@ public class Finder {
       while (!paired) {
         SearchPacket p = new SearchPacket();
         p.recv(sock);
+        addr = p.getAddress();
         if (p.getControl() == 's') {
-          addr = p.getAddress();
           System.out.println("Received message from "+addr.getHostAddress());
-          InetAddress mine = InetAddress.getLocalHost();
           p = new SearchPacket(SearchPacket.RETURN, name);
           p.send(addr, 4447, sock);
           System.out.println("Sent return message to "+addr.getHostAddress());
+        } else if (p.getControl() == 'p') {
+          int num = p.getNum();
+          //TODO: get num from user
+          int user_num = 1024;
+          if (num == user_num) {
+            System.out.println("Numbers match, sending accept with port "+mine.getPort());
+            p = new SearchPacket(SearchPacket.ACCEPT, mine.getPort());
+            p.send(addr, 4447, sock);
+            paired = true;
+          }
         }
       }
     } catch (IOException e) {
       e.printStackTrace();
     }
-    return addr;
   }
 
   private static int checkValid(String name, ArrayList<Host> hosts) {

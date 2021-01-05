@@ -30,17 +30,17 @@ public class SearchPacket {
   }
 
   //Constructor for pair
-  public SearchPacket(char control, int port) {
-    this.control = PAIR;
+  public SearchPacket(char control, int num) {
+    this.control = control;
     this.len = 4;
-    this.body = ByteBuffer.allocate(4).putInt(port).array();
+    this.body = ByteBuffer.allocate(4).putInt(num).array();
   }
 
   //Constructor for accept
-  public SearchPacket(char control, int portPrev, int port) {
-    this.control = PAIR;
-    this.len = 8;
-    this.body = ByteBuffer.allocate(8).putInt(port).putInt(portPrev).array();
+  public SearchPacket(char control, int port, boolean temp) {
+    this.control = control;
+    this.len = 4;
+    this.body = ByteBuffer.allocate(4).putInt(port).array();
   }
 
   public SearchPacket() {
@@ -102,17 +102,15 @@ public class SearchPacket {
   }
 
   public int getPort() {
-    if (control == 'p' || control == 'a') {
+    if (control == 'a') {
       return ByteBuffer.wrap(body).getInt();
     }
     return -1;
   }
 
-  public int getPrevPort() {
-    if (control == 'a') {
-      ByteBuffer b = ByteBuffer.wrap(body);
-      b.getInt();
-      return b.getInt();
+  public int getNum() {
+    if (control == 'p') {
+      return ByteBuffer.wrap(body).getInt();
     }
     return -1;
   }

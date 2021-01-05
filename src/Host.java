@@ -2,8 +2,9 @@ import java.net.*;
 
 public class Host {
   private InetAddress IP;
-  private int port;
+  private int port = 0;
   private String name;
+  private TCP t;
 
   public Host(InetAddress ip, String hostName) {
     this.IP = ip;
@@ -12,6 +13,13 @@ public class Host {
 
   public void setPort(int port) {
     this.port = port;
+  }
+
+  public void enableTCP(boolean send_recv) {
+    t = new TCP(send_recv, IP.getHostAddress(), port);
+    if (port == 0) {
+      port = t.getPort();
+    }
   }
 
   public InetAddress getIP() {
