@@ -7,6 +7,7 @@ public class SearchPacket {
   public static final char SEARCH = 's';
   public static final char RETURN = 'r';
   public static final char PAIR = 'p';
+  public static final char ACCEPT = 'a';
 
   private int len;
   private char control;
@@ -14,16 +15,32 @@ public class SearchPacket {
   private ByteBuffer buff;
   private InetAddress addr;
 
+  //Constructor for search
   public SearchPacket(char control) {
     this.control = control;
     this.body = "Search".getBytes();
     this.len = this.body.length;
   }
 
+  //Constructor for return
   public SearchPacket(char control, String name) {
     this.control = control;
     this.body = name.getBytes();
     this.len = this.body.length;
+  }
+
+  //Constructor for pair
+  public SearchPacket(char control, int port) {
+    this.control = PAIR;
+    this.len = 4;
+    this.body = ByteBuffer.allocate(4).putInt(port).array();
+  }
+
+  //Constructor for accept
+  public SearchPacket(char control, int portPrev, int port) {
+    this.control = PAIR;
+    this.len = 8;
+    this.body = ByteBuffer.allocate(8).putInt(port).putInt(portPrev).array();
   }
 
   public SearchPacket() {
@@ -42,11 +59,15 @@ public class SearchPacket {
     }
   }
 
-  public void recv(DatagramSocket sock) {
+  public void recv(DatagramSocket sock, int timeout) throws SocketTimeoutException {
     byte[] recv = new byte[1024];
     DatagramPacket pack = new DatagramPacket(recv, recv.length);
     try {
+      sock.setSoTimeout(timeout);
       sock.receive(pack);
+      sock.setSoTimeout(0);
+    } catch (SocketTimeoutException e) {
+      throw e;
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -56,6 +77,13 @@ public class SearchPacket {
     body = new byte[len];
     buff.get(body);
     addr = pack.getAddress();
+  }
+
+  public void recv(DatagramSocket sock) {
+    try {
+      recv(sock, 0);
+    } catch (SocketTimeoutException e) {
+    }
   }
 
   public InetAddress getAddress() {
@@ -71,6 +99,22 @@ public class SearchPacket {
       }
     }
     return null;
+  }
+
+  public int getPort() {
+    if (control == 'p' || control == 'a') {
+      return ByteBuffer.wrap(body).getInt();
+    }
+    return -1;
+  }
+
+  public int getPrevPort() {
+    if (control == 'a') {
+      ByteBuffer b = ByteBuffer.wrap(body);
+      b.getInt();
+      return b.getInt();
+    }
+    return -1;
   }
 
   public char getControl() {

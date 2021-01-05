@@ -1,12 +1,17 @@
 import java.net.*;
 import java.io.*;
+import java.util.Scanner;
+import java.util.ArrayList;
 
 public class Finder {
 	public static final boolean SEARCH = true;
 	public static final boolean LISTEN = false;
 
-  public static InetAddress search() {
-    InetAddress addr = null;
+  private static volatile boolean lock = false;
+  private static volatile boolean cont = true;
+
+  public static Host search(UI ui) {
+    Host addr = null;
     try {
       DatagramSocket sock = new DatagramSocket(4447);
       InetAddress group = InetAddress.getByName("224.0.113.0");
@@ -14,14 +19,43 @@ public class Finder {
       p.send(group, 4446, sock);
       System.out.println("Sent message to broadcast group");
 
-      p = new SearchPacket();
-      p.recv(sock);
-      if (p.getControl() == 'r') {
-        addr = p.getAddress();
-        System.out.println("Received name: \""+p.getName()+"\" from "+p.getAddress());
-      }
+      ArrayList<Host> hosts = new ArrayList<Host>();
 
+      Thread t = new Thread(new Runnable() {
+        public void run() {
+          while (cont) {
+            SearchPacket p = new SearchPacket();
+            try {
+              p.recv(sock, 1000);
+            } catch (SocketTimeoutException e) {
+              cont = false;
+            }
+            if (p.getControl() == 'r') {
+              InetAddress addr = p.getAddress();
+              ui.display(p.getName()+" ("+p.getAddress()+")");
+              while(testAndSet());
+              hosts.add(new Host(p.getAddress(), p.getName()));
+              unlock();
+              System.out.println(p.getName()+" added");
+            }
+          }
+        }
+      });
+      t.start();
+      boolean valid = false;
+      String name = null;
+      Scanner in = new Scanner(System.in);
+      while (!valid) {
+        name = in.next();
+        valid = checkValid(name, hosts) != -1;
+        System.out.println("Valid? "+valid);
+      }
+      cont = false;
+      t.join();
+      addr = hosts.get(checkValid(name, hosts));
     } catch (IOException e) {
+      e.printStackTrace();
+    } catch (InterruptedException e) {
       e.printStackTrace();
     }
     return addr;
@@ -44,13 +78,31 @@ public class Finder {
           p = new SearchPacket(SearchPacket.RETURN, name);
           p.send(addr, 4447, sock);
           System.out.println("Sent return message to "+addr.getHostAddress());
-          paired = true;
         }
       }
     } catch (IOException e) {
       e.printStackTrace();
     }
     return addr;
+  }
+
+  private static int checkValid(String name, ArrayList<Host> hosts) {
+    for (int i=0; i<hosts.size(); i++) {
+      if (hosts.get(i).equals(name)) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  private static boolean testAndSet() {
+    boolean temp = lock;
+    lock = true;
+    return temp;
+  }
+
+  private static void unlock() {
+    lock = false;
   }
 
   public static void main(String[] args) {
@@ -63,7 +115,7 @@ public class Finder {
 
     System.out.println("Search? "+mode);
     if (mode == SEARCH) {
-      search();
+      search(new Tui());
     } else {
       String name = null;
       if (args.length >= 2) {
