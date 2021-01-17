@@ -2,76 +2,110 @@ import java.net.*;
 import java.io.*;
 import java.util.Scanner;
 import java.util.ArrayList;
+import java.util.Random;
 
 public class Finder {
 	public static final boolean SEARCH = true;
 	public static final boolean LISTEN = false;
 
-  private static volatile boolean lock = false;
-  private static volatile boolean cont = true;
+  private volatile boolean lock = false;
+  private volatile boolean cont = true;
+  private ArrayList<Host> hosts = new ArrayList<Host>();
+  private DatagramSocket sock = null;
+  private InetAddress group;
+  private UI ui;
 
-  public static Host search(UI ui) {
-    Host addr = null;
+  public Finder(boolean search_listen, UI ui) {
+    this.ui = ui;
     try {
-      DatagramSocket sock = new DatagramSocket(4447);
-      InetAddress group = InetAddress.getByName("224.0.113.0");
-      SearchPacket p = new SearchPacket(SearchPacket.SEARCH);
-      p.send(group, 4446, sock);
-      System.out.println("Sent message to broadcast group");
-
-      ArrayList<Host> hosts = new ArrayList<Host>();
-
-      Thread t = new Thread(new Runnable() {
-        public void run() {
-          while (cont) {
-            SearchPacket p = new SearchPacket();
-            try {
-              p.recv(sock, 1000);
-            } catch (SocketTimeoutException e) {
-              cont = false;
-            }
-            if (p.getControl() == 'r') {
-              InetAddress addr = p.getAddress();
-              ui.display(p.getName()+" ("+p.getAddress()+")");
-              while(testAndSet());
-              hosts.add(new Host(p.getAddress(), p.getName()));
-              unlock();
-              System.out.println(p.getName()+" added");
-            }
-          }
-        }
-      });
-      t.start();
-      boolean valid = false;
-      String name = null;
-      Scanner in = new Scanner(System.in);
-      while (!valid) {
-        name = in.next();
-        valid = checkValid(name, hosts) != -1;
-        System.out.println("Valid? "+valid);
+      group = InetAddress.getByName("224.0.113.0");
+      if (search_listen == SEARCH) {
+        sock = new DatagramSocket(4447);
+      } else {
+        MulticastSocket sock = new MulticastSocket(4446);
+        sock.joinGroup(group);
+        this.sock = sock;
       }
-      cont = false;
-      t.join();
-      addr = hosts.get(checkValid(name, hosts));
-
-      p = new SearchPacket(SearchPacket.PAIR, 1024);//TODO: get number here
-      p.send(addr.getIP(), 4446, sock);
-
-      p = new SearchPacket();
-      p.recv(sock);
-      System.out.println("control: "+p.getControl());
-      addr.setPort(p.getPort());
-      System.out.println("Recieved port number: "+addr.getPort());
-      addr.enableTCP(TCP.SEND);
+    } catch (UnknownHostException e) {
+      System.out.println("Group not valid");
+    } catch (SocketException e) {
+      System.out.println("Datagram socket could not be opened: "+e);
     } catch (IOException e) {
       e.printStackTrace();
-    } catch (InterruptedException e) {
-      e.printStackTrace();
     }
+  }
+
+  public void search() {
+    SearchPacket p = new SearchPacket(SearchPacket.SEARCH);
+    p.send(group, 4446, sock);
+    if (ui != null) {
+      ui.display(UI.INFO, "Sent message to broadcast group");
+    } else {
+      System.out.println("Sent message to broadcast group");
+    }
+    while (cont) {
+      p = new SearchPacket();
+      try {
+        p.recv(sock, 1000);
+      } catch (SocketTimeoutException e) {
+        cont = false;
+      }
+      if (p.getControl() == 'r') {
+        InetAddress addr = p.getAddress();
+        if (ui != null) {
+          ui.display(UI.MESSAGE, p.getName()+" ("+addr+")");
+        } else {
+          System.out.println(p.getName()+" ("+addr+")");
+        }
+        while(testAndSet());
+          hosts.add(new Host(addr, p.getName()));
+        unlock();
+        if (ui != null) {
+          ui.display(UI.INFO, p.getName()+" added");
+        } else {
+          System.out.println(p.getName()+" added");
+        }
+      }
+    }
+  }
+
+  public Host pair(String name) {
+    boolean valid = false;
+    valid = checkValid(name, hosts) != -1;
+    if (!valid) {
+      return null;
+    }
+    cont = false;
+    Host addr = hosts.get(checkValid(name, hosts));
+
+    int num = (new Random()).nextInt(10000);
+    if (ui != null) {
+      ui.display(UI.POPUP, "Number: "+num);
+    } else {
+      System.out.println("Number: "+num);
+    }
+
+    SearchPacket p = new SearchPacket(SearchPacket.PAIR, num);
+    p.send(addr.getIP(), 4446, sock);
+
+    p = new SearchPacket();
+    p.recv(sock);
+    if (ui != null) {
+      ui.display(UI.INFO, "control: "+p.getControl());
+    } else {
+      System.out.println("control: "+p.getControl());
+    }
+    addr.setPort(p.getPort());
+    if (ui != null) {
+      ui.display(UI.INFO, "Recieved port number: "+addr.getPort());
+    } else {
+      System.out.println("Recieved port number: "+addr.getPort());
+    }
+    addr.enableTCP(TCP.SEND);
     return addr;
   }
 
-  public static void listen(String name) {
+  public Host listen(String name) {
     InetAddress addr = null;
     try {
       Host mine = new Host(InetAddress.getLocalHost(), name);
@@ -83,52 +117,67 @@ public class Finder {
         }
       });
       t.start();
-      MulticastSocket sock = new MulticastSocket(4446);
-      InetAddress group = InetAddress.getByName("224.0.113.0");
-      sock.joinGroup(group);
       boolean paired = false;
       while (!paired) {
         SearchPacket p = new SearchPacket();
         p.recv(sock);
         addr = p.getAddress();
         if (p.getControl() == 's') {
-          System.out.println("Received message from "+addr.getHostAddress());
+          if (ui != null) {
+            ui.display(UI.INFO, "Received message from "+addr.getHostAddress());
+          } else {
+            System.out.println("Received message from "+addr.getHostAddress());
+          }
           p = new SearchPacket(SearchPacket.RETURN, name);
           p.send(addr, 4447, sock);
-          System.out.println("Sent return message to "+addr.getHostAddress());
+          if (ui != null) {
+            ui.display(UI.INFO, "Sent return message to "+addr.getHostAddress());
+          } else {
+            System.out.println("Sent return message to "+addr.getHostAddress());
+          }
         } else if (p.getControl() == 'p') {
           int num = p.getNum();
           //TODO: get num from user
-          int user_num = 1024;
+          String input = ui.getInput("Enter the security number displayed on the connecting device");
+          int user_num = Integer.parseInt(input);
           if (num == user_num) {
+          if (ui != null) {
+            ui.display(UI.INFO, "Numbers match, sending accept with port "+mine.getPort());
+          } else {
             System.out.println("Numbers match, sending accept with port "+mine.getPort());
+          }
             p = new SearchPacket(SearchPacket.ACCEPT, mine.getPort());
             p.send(addr, 4447, sock);
             paired = true;
           }
         }
       }
+      return mine;
     } catch (IOException e) {
       e.printStackTrace();
     }
+    return null;
   }
 
-  private static int checkValid(String name, ArrayList<Host> hosts) {
+  private int checkValid(String name, ArrayList<Host> hosts) {
+    while(testAndSet());
     for (int i=0; i<hosts.size(); i++) {
       if (hosts.get(i).equals(name)) {
+        unlock();
         return i;
       }
     }
+    unlock();
     return -1;
   }
 
-  private static boolean testAndSet() {
+  private boolean testAndSet() {
     boolean temp = lock;
     lock = true;
     return temp;
   }
 
-  private static void unlock() {
+  private void unlock() {
     lock = false;
   }
 
@@ -140,9 +189,23 @@ public class Finder {
 		int modei = Integer.parseInt(args[0]);
 		boolean mode = (modei == 0) ? SEARCH : LISTEN;
 
-    System.out.println("Search? "+mode);
+    Finder f = new Finder(mode, new Tui(null));
     if (mode == SEARCH) {
-      search(new Tui());
+      Thread t = new Thread(new Runnable() {
+        public void run() {
+          f.search();
+        }
+      });
+      t.start();
+      Scanner s = new Scanner(System.in);
+      boolean valid = false;
+      while(!valid) {
+        String name = s.next();
+        Host h = f.pair(name);
+        if (h != null) {
+          valid = true;
+        }
+      }
     } else {
       String name = null;
       if (args.length >= 2) {
@@ -151,7 +214,7 @@ public class Finder {
         System.out.println("NOTE: listener needs to specify a name");
         System.exit(0);
       }
-      listen(name);
-	  }
+      f.listen(name);
+    }
   }
 }
