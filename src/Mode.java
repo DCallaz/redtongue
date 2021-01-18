@@ -2,6 +2,7 @@ public enum Mode {
   MODE,
   NAME,
   WAIT,
-  NUMBER,
+  FILE_S,
+  FILE_R,
   TRANSFER
 }

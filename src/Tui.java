@@ -1,53 +1,76 @@
 import java.util.Scanner;
 import java.util.NoSuchElementException;
+import java.util.function.Consumer;
 
 public class Tui implements UI {
 
   private RedTongue red;
   private Mode mode;
   private volatile boolean input = false;
+  private String temp = null;
+  private volatile boolean tempWait = true;
 
   public Tui(RedTongue red) {
     this.red = red;
     this.mode = Mode.MODE;
     changeDisplay();
-    startListner();
-  }
-
-  public void startListner() {
     Thread t = new Thread(new Runnable() {
       public void run() {
-        Scanner sc = new Scanner(System.in);
-        boolean cont = true;
-        while (true) {
-          String next = "";
-          try {
-            next = sc.next();
-          } catch (NoSuchElementException e) {
-            break;
-          }
-          if (!input) {
-            switch(mode) {
-              case MODE:
-                if (next.equals("send")) {
-                  changeMode(Mode.NAME);
-                  red.start(RedTongue.SEND);
-                } else if (next.equals("receive")) {
-                  changeMode(Mode.WAIT);
-                  red.start(RedTongue.RECV);
-                } else {
-                  display(UI.INFO, "Unrecognized mode. Try again");
-                }
-                break;
-              case NAME:
-                red.pair(next);
-                break;
-            }
-          }
-        }
+        startListner();
       }
     });
     t.start();
+  }
+
+  public void startListner() {
+    Scanner sc = new Scanner(System.in);
+    boolean cont = true;
+    while (true) {
+      String next = "";
+      try {
+        next = sc.nextLine();
+      } catch (NoSuchElementException e) {
+        e.printStackTrace();
+        break;
+      }
+      System.out.println(input);
+      if (!input) {
+        Exe exe = null;
+        final String s = next;
+        switch(mode) {
+          case MODE:
+            if (next.equals("send")) {
+              changeMode(Mode.NAME);
+              exe = () -> red.start(FileTransfer.SEND);
+            } else if (next.equals("receive")) {
+             changeMode(Mode.WAIT);
+              exe = () -> red.start(FileTransfer.RECV);
+            } else {
+              display(UI.INFO, "Unrecognized mode. Try again");
+            }
+            break;
+          case NAME:
+            exe = () -> red.pair(s);
+            break;
+          case FILE_S:
+          case FILE_R:
+            System.out.println("Input received");
+            exe = () -> red.transfer(s);
+            break;
+          default:
+            System.out.println("ERROR: no such mode "+mode);
+        }
+        Thread t = new Thread(exe);
+        t.start();
+      } else {
+        temp = next;
+        tempWait = false;
+        System.out.println("Notifying");
+        synchronized(this) {
+          notifyAll();
+        }
+      }
+    }
   }
 
   public void changeMode(Mode mode) {
@@ -68,8 +91,11 @@ public class Tui implements UI {
       case WAIT:
         System.out.println("Searching for devices to connect to...");
         break;
-      case NUMBER:
-        System.out.println("Type the number that appears on the sender device:");
+      case FILE_S:
+        System.out.println("Enter the file location of the file you would like to send:");
+        break;
+      case FILE_R:
+        System.out.println("Enter a file location if you would like to change the save location\n\telse press enter:");
         break;
     }
   }
@@ -97,9 +123,21 @@ public class Tui implements UI {
   public String getInput(String message) {
     display(UI.MESSAGE, message);
     input = true;
-    Scanner sc = new Scanner(System.in);
-    String ret = sc.next();
+    System.out.println("Waiting...");
+    synchronized(this) {
+      while (tempWait) {
+        try {
+          wait();
+          System.out.println("Awoken");
+        } catch (Exception e) {
+          System.out.println(e);
+        }
+      }
+    }
+    System.out.println("Got input "+temp);
     input = false;
+    String ret = temp;
+    temp = null;
     return ret;
   }
 }

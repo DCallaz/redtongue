@@ -34,6 +34,10 @@ public class Host {
     return name;
   }
 
+  public TCP getTCP() {
+    return t;
+  }
+
   @Override
   public boolean equals(Object test) {
     return test.equals(name);

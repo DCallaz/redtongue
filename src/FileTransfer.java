@@ -19,8 +19,16 @@ public class FileTransfer {
       f = new RandomAccessFile(file, "r");
 		} else {
       String fname = t.recvName();
-      if (file == null) {
+      if (file == null || file.equals("")) {
         file = fname;
+      } else {
+        File path = new File(file);
+        File f = new File(path.getParent(), fname);
+        try {
+          file = f.getCanonicalPath();
+        } catch(IOException e) {
+          System.out.println(e);
+        }
       }
 			//open file for write
 			try {

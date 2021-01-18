@@ -111,7 +111,10 @@ public class TCP {
 		return -1;
 	}
 
-	public void sendName(String name) {
+	public void sendName(String path) {
+    File file = new File(path);
+    String name = file.getName();
+
 		try {
 			out.writeUTF(name);
 		} catch (IOException e) {
