@@ -49,7 +49,7 @@ public class FileTransfer {
 			t.sendSize(reps);
 			TuiProgress prog = new TuiProgress(reps);
 			while ((size = f.read(array)) > 0) {
-				t.send(array, size, prog, 100000);
+				t.send(array, size, prog, 1024);
 				prog.incRep();
 			}
 		} catch (IOException e) {
