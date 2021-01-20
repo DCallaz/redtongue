@@ -37,11 +37,11 @@ public class RedTongue {
       FileTransfer.transfer(mode, path, h.getTCP());
     } catch (FileNotFoundException e) {
       System.out.println("File \""+path+"\" not found.");
-      if (mode = FileTransfer.SEND) {
-        ui.changeMode(Mode.FILE_S);
-      } else {
-        ui.changeMode(Mode.FILE_R);
-      }
+    }
+    if (mode == FileTransfer.SEND) {
+      ui.changeMode(Mode.FILE_S);
+    } else {
+      ui.changeMode(Mode.FILE_R);
     }
   }
 
