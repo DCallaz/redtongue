@@ -59,7 +59,8 @@ public class SearchPacket {
     }
   }
 
-  public void recv(DatagramSocket sock, int timeout) throws SocketTimeoutException {
+  public void recv(DatagramSocket sock, int timeout) throws SocketTimeoutException,
+         SocketException {
     byte[] recv = new byte[1024];
     DatagramPacket pack = new DatagramPacket(recv, recv.length);
     try {
@@ -67,6 +68,8 @@ public class SearchPacket {
       sock.receive(pack);
       sock.setSoTimeout(0);
     } catch (SocketTimeoutException e) {
+      throw e;
+    } catch (SocketException e) {
       throw e;
     } catch (IOException e) {
       e.printStackTrace();
@@ -79,7 +82,7 @@ public class SearchPacket {
     addr = pack.getAddress();
   }
 
-  public void recv(DatagramSocket sock) {
+  public void recv(DatagramSocket sock) throws SocketException {
     try {
       recv(sock, 0);
     } catch (SocketTimeoutException e) {

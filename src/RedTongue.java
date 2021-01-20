@@ -10,18 +10,29 @@ public class RedTongue {
 
   public RedTongue() {
     ui = new Tui(this);
-    mode = FileTransfer.SEND;
     name = "UnknownUser";
   }
 
   public void start(boolean mode) {
+    if (f == null) {
+      newFinder(mode);
+    } else if (this.mode != mode) {
+      ui.display(UI.INFO, "New finder starting");
+      f.close();
+      newFinder(mode);
+    }
     this.mode = mode;
-    f = new Finder(mode, ui);
+    search_listen();
+  }
+
+  public void search_listen() {
     if (mode == FileTransfer.SEND) {
       f.search();
     } else {
-      h = f.listen(name);
-      ui.changeMode(Mode.FILE_R);
+      h = f.listen();
+      if (h != null) {
+        ui.changeMode(Mode.FILE_R);
+      }
     }
   }
 
@@ -42,6 +53,15 @@ public class RedTongue {
       ui.changeMode(Mode.FILE_S);
     } else {
       ui.changeMode(Mode.FILE_R);
+    }
+  }
+
+  //<----------- Helper Functions ------------>
+  private void newFinder(boolean mode) {
+    if (mode == FileTransfer.SEND) {
+      f = new Finder(ui);
+    } else {
+      f = new Finder(ui, name);
     }
   }
 

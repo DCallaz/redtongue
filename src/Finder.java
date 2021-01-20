@@ -14,18 +14,38 @@ public class Finder {
   private DatagramSocket sock = null;
   private InetAddress group;
   private UI ui;
+  private Host mine;
 
-  public Finder(boolean search_listen, UI ui) {
+  public Finder(UI ui) {
     this.ui = ui;
     try {
       group = InetAddress.getByName("224.0.113.0");
-      if (search_listen == SEARCH) {
         sock = new DatagramSocket(4447);
-      } else {
-        MulticastSocket sock = new MulticastSocket(4446);
-        sock.joinGroup(group);
-        this.sock = sock;
-      }
+    } catch (UnknownHostException e) {
+      System.out.println("Group not valid");
+    } catch (SocketException e) {
+      System.out.println("Datagram socket could not be opened: "+e);
+    }
+    mine = null;
+  }
+
+  public Finder(UI ui, String name) {
+    this.ui = ui;
+    try {
+      group = InetAddress.getByName("224.0.113.0");
+      MulticastSocket sock = new MulticastSocket(4446);
+      sock.joinGroup(group);
+      this.sock = sock;
+      Host mine = new Host(InetAddress.getLocalHost(), name);
+      Thread t = new Thread(new Runnable() {
+        @Override
+        public void run() {
+          mine.setPort(8199);
+          mine.enableTCP(TCP.RECV);
+        }
+      });
+      t.start();
+      this.mine = mine;
     } catch (UnknownHostException e) {
       System.out.println("Group not valid");
     } catch (SocketException e) {
@@ -33,6 +53,10 @@ public class Finder {
     } catch (IOException e) {
       e.printStackTrace();
     }
+  }
+
+  public void close() {
+    sock.close();
   }
 
   public void search() {
@@ -48,6 +72,9 @@ public class Finder {
       try {
         p.recv(sock, 1000);
       } catch (SocketTimeoutException e) {
+        cont = false;
+      } catch (SocketException e) {
+        System.err.println("Unknown socket exception");
         cont = false;
       }
       if (p.getControl() == 'r') {
@@ -89,7 +116,11 @@ public class Finder {
     p.send(addr.getIP(), 4446, sock);
 
     p = new SearchPacket();
-    p.recv(sock);
+    try {
+      p.recv(sock);
+    } catch (SocketException e) {
+      ui.display(UI.WARNING, "Illegal socket exception in finder pair function");
+    }
     if (ui != null) {
       ui.display(UI.INFO, "control: "+p.getControl());
     } else {
@@ -105,58 +136,52 @@ public class Finder {
     return addr;
   }
 
-  public Host listen(String name) {
+  public Host listen() {
     InetAddress addr = null;
-    try {
-      Host mine = new Host(InetAddress.getLocalHost(), name);
-      Thread t = new Thread(new Runnable() {
-        @Override
-        public void run() {
-          mine.setPort(8199);
-          mine.enableTCP(TCP.RECV);
-        }
-      });
-      t.start();
-      boolean paired = false;
-      while (!paired) {
-        SearchPacket p = new SearchPacket();
+    boolean paired = false;
+    boolean error = false;
+    while (!paired && !error) {
+      SearchPacket p = new SearchPacket();
+      try {
         p.recv(sock);
-        addr = p.getAddress();
-        if (p.getControl() == 's') {
-          if (ui != null) {
-            ui.display(UI.INFO, "Received message from "+addr.getHostAddress());
-          } else {
-            System.out.println("Received message from "+addr.getHostAddress());
-          }
-          p = new SearchPacket(SearchPacket.RETURN, name);
-          p.send(addr, 4447, sock);
-          if (ui != null) {
-            ui.display(UI.INFO, "Sent return message to "+addr.getHostAddress());
-          } else {
-            System.out.println("Sent return message to "+addr.getHostAddress());
-          }
-        } else if (p.getControl() == 'p') {
-          int num = p.getNum();
-          //TODO: get num from user
-          String input = ui.getInput("Enter the security number displayed on the connecting device");
-          int user_num = Integer.parseInt(input);
-          if (num == user_num) {
+      } catch (SocketException e) {
+        error = true;
+      }
+      addr = p.getAddress();
+      if (p.getControl() == 's') {
+        if (ui != null) {
+          ui.display(UI.INFO, "Received message from "+addr.getHostAddress());
+        } else {
+          System.out.println("Received message from "+addr.getHostAddress());
+        }
+        p = new SearchPacket(SearchPacket.RETURN, mine.getName());
+        p.send(addr, 4447, sock);
+        if (ui != null) {
+          ui.display(UI.INFO, "Sent return message to "+addr.getHostAddress());
+        } else {
+          System.out.println("Sent return message to "+addr.getHostAddress());
+        }
+      } else if (p.getControl() == 'p') {
+        int num = p.getNum();
+        String input = ui.getInput("Enter the security number displayed on the connecting device");
+        int user_num = Integer.parseInt(input);
+        if (num == user_num) {
           if (ui != null) {
             ui.display(UI.INFO, "Numbers match, sending accept with port "+mine.getPort());
           } else {
             System.out.println("Numbers match, sending accept with port "+mine.getPort());
           }
-            p = new SearchPacket(SearchPacket.ACCEPT, mine.getPort());
-            p.send(addr, 4447, sock);
-            paired = true;
-          }
+          p = new SearchPacket(SearchPacket.ACCEPT, mine.getPort());
+          p.send(addr, 4447, sock);
+          paired = true;
         }
       }
-      return mine;
-    } catch (IOException e) {
-      e.printStackTrace();
     }
-    return null;
+    if (error) {
+      return null;
+    } else {
+      return mine;
+    }
   }
 
   private int checkValid(String name, ArrayList<Host> hosts) {
@@ -189,8 +214,8 @@ public class Finder {
 		int modei = Integer.parseInt(args[0]);
 		boolean mode = (modei == 0) ? SEARCH : LISTEN;
 
-    Finder f = new Finder(mode, new Tui(null));
     if (mode == SEARCH) {
+      final Finder f = new Finder(new Tui(null));
       Thread t = new Thread(new Runnable() {
         public void run() {
           f.search();
@@ -207,14 +232,14 @@ public class Finder {
         }
       }
     } else {
-      String name = null;
       if (args.length >= 2) {
-        name = args[1];
+        String name = args[1];
+        Finder f = new Finder(new Tui(null), name);
+        f.listen();
       } else {
         System.out.println("NOTE: listener needs to specify a name");
         System.exit(0);
       }
-      f.listen(name);
     }
   }
 }
