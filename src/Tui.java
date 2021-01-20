@@ -9,6 +9,7 @@ public class Tui implements UI {
   private volatile boolean input = false;
   private String temp = null;
   private volatile boolean tempWait = true;
+  private boolean amode;
 
   public Tui(RedTongue red) {
     this.red = red;
@@ -34,7 +35,38 @@ public class Tui implements UI {
         break;
       }
       System.out.println(input);
-      if (!input) {
+      if (input) {
+        temp = next;
+        tempWait = false;
+        System.out.println("Notifying");
+        synchronized(this) {
+          notifyAll();
+        }
+      } else if (next.equals("help")) {
+        System.out.println("HELP MENU:");//TODO
+      } else if (next.startsWith("cs")) {
+        String m = next.split(" ")[1];
+        switch(m) {
+          case "mode":
+            changeMode(Mode.MODE);
+            break;
+          case "name":
+            changeMode(Mode.NAME);
+            break;
+          case "file":
+            if (amode == FileTransfer.SEND) {
+              changeMode(Mode.FILE_S);
+            } else {
+              changeMode(Mode.FILE_R);
+            }
+            break;
+          case "transfer":
+            changeMode(Mode.TRANSFER);
+            break;
+          default:
+            display(ERROR, "Unrecognized mode");
+        }
+      } else {
         Exe exe = null;
         final String s = next;
         switch(mode) {
@@ -42,9 +74,11 @@ public class Tui implements UI {
             if (next.equals("send")) {
               changeMode(Mode.NAME);
               exe = () -> red.start(FileTransfer.SEND);
+              amode = FileTransfer.SEND;
             } else if (next.equals("receive")) {
              changeMode(Mode.WAIT);
               exe = () -> red.start(FileTransfer.RECV);
+              amode = FileTransfer.RECV;
             } else {
               display(UI.INFO, "Unrecognized mode. Try again");
             }
@@ -62,13 +96,6 @@ public class Tui implements UI {
         }
         Thread t = new Thread(exe);
         t.start();
-      } else {
-        temp = next;
-        tempWait = false;
-        System.out.println("Notifying");
-        synchronized(this) {
-          notifyAll();
-        }
       }
     }
   }
