@@ -51,7 +51,11 @@ public class Tui implements UI {
             changeMode(Mode.MODE);
             break;
           case "name":
-            changeMode(Mode.NAME);
+            if (amode != FileTransfer.SEND) {
+              display(UI.WARNING, "Cannot enter this mode (not a sender)");
+            } else {
+              changeMode(Mode.NAME);
+            }
             break;
           case "file":
             if (amode == FileTransfer.SEND) {
@@ -84,7 +88,11 @@ public class Tui implements UI {
             }
             break;
           case NAME:
-            exe = () -> red.pair(s);
+            if (s.equals("refresh")) {
+              exe = () -> red.search_listen();
+            } else {
+              exe = () -> red.pair(s);
+            }
             break;
           case FILE_S:
           case FILE_R:

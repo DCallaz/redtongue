@@ -68,8 +68,10 @@ public class SearchPacket {
       sock.receive(pack);
       sock.setSoTimeout(0);
     } catch (SocketTimeoutException e) {
+      sock.setSoTimeout(0);
       throw e;
     } catch (SocketException e) {
+      sock.setSoTimeout(0);
       throw e;
     } catch (IOException e) {
       e.printStackTrace();

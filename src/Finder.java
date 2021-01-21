@@ -67,31 +67,33 @@ public class Finder {
     } else {
       System.out.println("Sent message to broadcast group");
     }
+    cont = true;
     while (cont) {
       p = new SearchPacket();
       try {
         p.recv(sock, 1000);
+        if (p.getControl() == 'r') {
+          InetAddress addr = p.getAddress();
+          if (ui != null) {
+            ui.display(UI.MESSAGE, p.getName()+" ("+addr+")");
+          } else {
+            System.out.println(p.getName()+" ("+addr+")");
+          }
+          while(testAndSet());
+          hosts.add(new Host(addr, p.getName()));
+          unlock();
+          if (ui != null) {
+            ui.display(UI.INFO, p.getName()+" added");
+          } else {
+            System.out.println(p.getName()+" added");
+          }
+        }
       } catch (SocketTimeoutException e) {
         cont = false;
+        //ui.display(UI.INFO, "Receive timed out");
       } catch (SocketException e) {
         System.err.println("Unknown socket exception");
         cont = false;
-      }
-      if (p.getControl() == 'r') {
-        InetAddress addr = p.getAddress();
-        if (ui != null) {
-          ui.display(UI.MESSAGE, p.getName()+" ("+addr+")");
-        } else {
-          System.out.println(p.getName()+" ("+addr+")");
-        }
-        while(testAndSet());
-          hosts.add(new Host(addr, p.getName()));
-        unlock();
-        if (ui != null) {
-          ui.display(UI.INFO, p.getName()+" added");
-        } else {
-          System.out.println(p.getName()+" added");
-        }
       }
     }
   }
