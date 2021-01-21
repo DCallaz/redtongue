@@ -9,7 +9,7 @@ public class RedTongue {
   private Host h = null;
 
   public RedTongue() {
-    ui = new Tui(this);
+    ui = new Gui(this);
     name = "UnknownUser";
   }
 

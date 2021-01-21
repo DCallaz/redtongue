@@ -80,7 +80,7 @@ public class Tui implements UI {
               exe = () -> red.start(FileTransfer.SEND);
               amode = FileTransfer.SEND;
             } else if (next.equals("receive")) {
-             changeMode(Mode.WAIT);
+              changeMode(Mode.WAIT);
               exe = () -> red.start(FileTransfer.RECV);
               amode = FileTransfer.RECV;
             } else {

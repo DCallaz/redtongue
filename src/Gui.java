@@ -2,30 +2,38 @@ import javax.swing.JFrame;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.JPanel;
+import javax.swing.JLabel;
 import javax.swing.BorderFactory;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import javax.swing.JTabbedPane;
 import javax.swing.JButton;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
-public class Gui extends JFrame {
+public class Gui extends JFrame implements UI {
   private static Gui theGui;
 
   private RedTongue red;
+  private boolean amode;
+  private Mode mode;
 
   private JPanel Frame;
   private JTabbedPane tabbedPane;
 
-  private JPanel panel1;
-  private JButton but2;
-  private JButton but3;
+  private JPanel modePanel;
+  private JButton butSend;
+  private JButton butRecv;
 
-  private JPanel panel2;
-  private JPanel panel3;
-  private JPanel panel4;
+  private JPanel pairPanel;
+  private JPanel filesPanel;
+  private JPanel transferPanel;
 
-  public static void main(String args[]) {
+  public Gui(RedTongue red) {
+    super("Redtongue");
     try {
       UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
     }
@@ -37,11 +45,6 @@ public class Gui extends JFrame {
     }
     catch (UnsupportedLookAndFeelException e) {
     }
-    theGui = new Gui(null);
-  }
-
-  public Gui(RedTongue red) {
-    super("Redtongue");
 
     Frame = new JPanel();
     GridBagLayout gbFrame = new GridBagLayout();
@@ -49,57 +52,113 @@ public class Gui extends JFrame {
     Frame.setLayout(gbFrame);
 
     tabbedPane = new JTabbedPane();
+    tabbedPane.addChangeListener(new ChangeListener() {
+      public void stateChanged(ChangeEvent e) {
+        int m = tabbedPane.getSelectedIndex();
+        switch(m) {
+          case 0:
+            changeMode(Mode.MODE);
+            break;
+          case 1:
+            if (amode != FileTransfer.SEND) {
+              display(UI.WARNING, "Cannot enter this mode (not a sender)");
+            } else {
+              changeMode(Mode.NAME);
+            }
+            break;
+          case 2:
+            if (amode == FileTransfer.SEND) {
+              changeMode(Mode.FILE_S);
+            } else {
+              changeMode(Mode.FILE_R);
+            }
+            break;
+          case 3:
+            changeMode(Mode.TRANSFER);
+            break;
+          default:
+            display(UI.ERROR, "Unrecognized mode");
+        }
+      }
+    });
 
-    panel1 = new JPanel();
-    GridBagLayout gbpanel1 = new GridBagLayout();
-    GridBagConstraints gbcpanel1 = new GridBagConstraints();
-    panel1.setLayout(gbpanel1);
+    modePanel = new JPanel();
+    GridBagLayout gbmodePanel = new GridBagLayout();
+    GridBagConstraints gbcmodePanel = new GridBagConstraints();
+    modePanel.setLayout(gbmodePanel);
 
-    but2 = new JButton("Receive");
-    gbcpanel1.gridx = 5;
-    gbcpanel1.gridy = 12;
-    gbcpanel1.gridwidth = 10;
-    gbcpanel1.gridheight = 4;
-    gbcpanel1.fill = GridBagConstraints.BOTH;
-    gbcpanel1.weightx = 1;
-    gbcpanel1.weighty = 1;
-    gbcpanel1.anchor = GridBagConstraints.CENTER;
-    gbpanel1.setConstraints(but2, gbcpanel1);
-    panel1.add(but2);
+    butRecv = new JButton("Receive");
+    butRecv.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent arg0) {
+        amode = FileTransfer.RECV;
+        changeMode(Mode.WAIT);
+        if (red != null) {
+          Thread t = new Thread(new Runnable() {
+            public void run() {
+              red.start(FileTransfer.RECV);
+            }
+          });
+        }
+      }
+    });
+    gbcmodePanel.gridx = 5;
+    gbcmodePanel.gridy = 12;
+    gbcmodePanel.gridwidth = 10;
+    gbcmodePanel.gridheight = 4;
+    gbcmodePanel.fill = GridBagConstraints.BOTH;
+    gbcmodePanel.weightx = 1;
+    gbcmodePanel.weighty = 1;
+    gbcmodePanel.anchor = GridBagConstraints.CENTER;
+    gbmodePanel.setConstraints(butRecv, gbcmodePanel);
+    modePanel.add(butRecv);
 
-    but3 = new JButton("Send");
-    but3.setActionCommand("Receive");
-    gbcpanel1.gridx = 5;
-    gbcpanel1.gridy = 4;
-    gbcpanel1.gridwidth = 10;
-    gbcpanel1.gridheight = 4;
-    gbcpanel1.fill = GridBagConstraints.BOTH;
-    gbcpanel1.weightx = 1;
-    gbcpanel1.weighty = 1;
-    gbcpanel1.anchor = GridBagConstraints.CENTER;
-    gbpanel1.setConstraints(but3, gbcpanel1);
-    panel1.add(but3);
-    tabbedPane.addTab("Mode",panel1);
+    butSend = new JButton("Send");
+    butSend.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent arg0) {
+        amode = FileTransfer.SEND;
+        changeMode(Mode.NAME);
+        if (red != null) {
+          Thread t = new Thread(new Runnable() {
+            public void run() {
+              red.start(FileTransfer.SEND);
+            }
+          });
+        }
+      }
+    });
+    gbcmodePanel.gridx = 5;
+    gbcmodePanel.gridy = 4;
+    gbcmodePanel.gridwidth = 10;
+    gbcmodePanel.gridheight = 4;
+    gbcmodePanel.fill = GridBagConstraints.BOTH;
+    gbcmodePanel.weightx = 1;
+    gbcmodePanel.weighty = 1;
+    gbcmodePanel.anchor = GridBagConstraints.CENTER;
+    gbmodePanel.setConstraints(butSend, gbcmodePanel);
+    modePanel.add(butSend);
+    tabbedPane.addTab("Mode",modePanel);
 
-    panel2 = new JPanel();
-    GridBagLayout gbpanel2 = new GridBagLayout();
-    GridBagConstraints gbcpanel2 = new GridBagConstraints();
-    panel2.setLayout(gbpanel2);
-    tabbedPane.addTab("Pair",panel2);
+    pairPanel = new JPanel();
+    GridBagLayout gbpairPanel = new GridBagLayout();
+    GridBagConstraints gbcpairPanel = new GridBagConstraints();
+    pairPanel.setLayout(gbpairPanel);
+    tabbedPane.addTab("Pair",pairPanel);
     tabbedPane.setEnabledAt(1, false);
 
-    panel3 = new JPanel();
-    GridBagLayout gbpanel3 = new GridBagLayout();
-    GridBagConstraints gbcpanel3 = new GridBagConstraints();
-    panel3.setLayout(gbpanel3);
-    tabbedPane.addTab("Files",panel3);
+    filesPanel = new JPanel();
+    GridBagLayout gbfilesPanel = new GridBagLayout();
+    GridBagConstraints gbcfilesPanel = new GridBagConstraints();
+    filesPanel.setLayout(gbfilesPanel);
+    tabbedPane.addTab("Files",filesPanel);
     tabbedPane.setEnabledAt(2, false);
 
-    panel4 = new JPanel();
-    GridBagLayout gbpanel4 = new GridBagLayout();
-    GridBagConstraints gbcpanel4 = new GridBagConstraints();
-    panel4.setLayout(gbpanel4);
-    tabbedPane.addTab("Transfer",panel4);
+    transferPanel = new JPanel();
+    GridBagLayout gbtransferPanel = new GridBagLayout();
+    GridBagConstraints gbctransferPanel = new GridBagConstraints();
+    transferPanel.setLayout(gbtransferPanel);
+    tabbedPane.addTab("Transfer",transferPanel);
     tabbedPane.setEnabledAt(3, false);
 
     gbcFrame.gridx = 0;
@@ -120,4 +179,50 @@ public class Gui extends JFrame {
     setLocation(600, 200);
     setVisible(true);
   } 
+
+  public void display(char type, String s) {
+    //TODO: display things
+  }
+
+  public void changeMode(Mode mode) {
+    this.mode = mode;
+    changeDisplay();
+  }
+
+  private void changeDisplay() {
+    //TODO: paint GUI
+    switch(mode) {
+      case MODE:
+        break;
+      case NAME:
+        tabbedPane.setEnabledAt(1, true);
+        tabbedPane.setSelectedIndex(1);
+        JLabel info = new JLabel("Choose a device to pair to by typing one of "+
+            "the following names:\n");
+        pairPanel.removeAll();
+        pairPanel.add(info);
+        break;
+      case WAIT:
+        tabbedPane.setEnabledAt(1, true);
+        tabbedPane.setSelectedIndex(1);
+        info = new JLabel("Searching for devices to connect to...");
+        pairPanel.removeAll();
+        pairPanel.add(info);
+        break;
+      case FILE_S:
+        break;
+      case FILE_R:
+        break;
+      default:
+        //TODO: error
+    }
+  }
+
+  public String getInput(String message) {
+    return "";
+  }
+
+  public static void main(String args[]) {
+    theGui = new Gui(null);
+  }
 } 
