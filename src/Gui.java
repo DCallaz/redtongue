@@ -11,8 +11,11 @@ import javax.swing.JTabbedPane;
 import javax.swing.JButton;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.JOptionPane;
 
 public class Gui extends JFrame implements UI {
   private static Gui theGui;
@@ -34,6 +37,7 @@ public class Gui extends JFrame implements UI {
 
   public Gui(RedTongue red) {
     super("Redtongue");
+    this.red = red;
     try {
       UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
     }
@@ -60,11 +64,7 @@ public class Gui extends JFrame implements UI {
             changeMode(Mode.MODE);
             break;
           case 1:
-            if (amode != FileTransfer.SEND) {
-              display(UI.WARNING, "Cannot enter this mode (not a sender)");
-            } else {
-              changeMode(Mode.NAME);
-            }
+            changeMode(Mode.NAME);
             break;
           case 2:
             if (amode == FileTransfer.SEND) {
@@ -99,6 +99,7 @@ public class Gui extends JFrame implements UI {
               red.start(FileTransfer.RECV);
             }
           });
+          t.start();
         }
       }
     });
@@ -125,6 +126,7 @@ public class Gui extends JFrame implements UI {
               red.start(FileTransfer.SEND);
             }
           });
+          t.start();
         }
       }
     });
@@ -181,7 +183,46 @@ public class Gui extends JFrame implements UI {
   } 
 
   public void display(char type, String s) {
-    //TODO: display things
+    switch (type) {
+      case UI.INFO:
+        System.out.println(s);
+        break;
+      case UI.MESSAGE:
+        switch(mode) {
+          case NAME:
+            JLabel name = new JLabel(s);
+            String n = s.split(" ")[0];
+            name.addMouseListener(new MouseAdapter() {
+              @Override
+              public void mouseClicked(MouseEvent e) {
+                if (red != null) {
+                  Thread t = new Thread(new Runnable() {
+                    public void run() {
+                      red.pair(n);
+                    }
+                  });
+                  t.start();
+                }
+              }
+            });
+            pairPanel.add(name);
+            break;
+          default:
+            System.out.println("MESSAGE: "+s);
+        }
+        break;
+      case UI.WARNING:
+        System.err.println(s);
+        break;
+      case UI.ERROR:
+        System.err.println(s);
+        break;
+      case UI.POPUP:
+        JOptionPane.showMessageDialog(null, s);
+        break;
+      default:
+        System.out.println(s);
+    }
   }
 
   public void changeMode(Mode mode) {
@@ -219,7 +260,13 @@ public class Gui extends JFrame implements UI {
   }
 
   public String getInput(String message) {
-    return "";
+    String s = JOptionPane.showInputDialog("Enter pair number");
+    try {
+      int i = Integer.parseInt(s);
+      return s;
+    } catch (Exception e) {
+      return "-1";
+    }
   }
 
   public static void main(String args[]) {

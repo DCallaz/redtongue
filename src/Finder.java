@@ -102,6 +102,7 @@ public class Finder {
     boolean valid = false;
     valid = checkValid(name, hosts) != -1;
     if (!valid) {
+      ui.display(UI.WARNING, "Name "+name+" not valid");
       return null;
     }
     cont = false;
