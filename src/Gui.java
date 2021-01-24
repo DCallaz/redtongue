@@ -19,6 +19,9 @@ import javax.swing.event.ChangeListener;
 import javax.swing.JOptionPane;
 import javax.swing.JDialog;
 import javax.swing.JProgressBar;
+import javax.swing.JMenuBar;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
 
 public class Gui extends JFrame implements UI {
   private static Gui theGui;
@@ -26,6 +29,7 @@ public class Gui extends JFrame implements UI {
   private RedTongue red;
   private boolean amode;
   private Mode mode;
+  private String name;
 
   private JPanel Frame;
   private JTabbedPane tabbedPane;
@@ -40,9 +44,13 @@ public class Gui extends JFrame implements UI {
   private JPanel transferPanel;
   private GuiProgress prog;
 
-  public Gui(RedTongue red) {
+  public Gui(RedTongue red, String name) {
     super("Redtongue");
+    if (!name.equals("")) {
+      setTitle("Redtongue - "+name);
+    }
     this.red = red;
+    this.name = name;
     try {
       UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
     }
@@ -183,6 +191,27 @@ public class Gui extends JFrame implements UI {
     gbFrame.setConstraints(tabbedPane, gbcFrame);
     Frame.add(tabbedPane);
 
+
+    JMenuBar menuBar = new JMenuBar();
+
+    JMenu menu = new JMenu("Edit");
+    JMenuItem item = new JMenuItem("Change name");
+    Gui g = this;
+    item.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        String name1 = JOptionPane.showInputDialog(null, "Enter new name:", "Name change", 0);
+        red.updateName(name1);
+        setTitle("RedTongue - "+name1);
+        g.name = name1;
+      }
+    });
+    menu.add(item);
+
+    menuBar.add(menu);
+
+    setJMenuBar(menuBar);
+
     setDefaultCloseOperation(EXIT_ON_CLOSE);
 
     setContentPane(Frame);
@@ -190,6 +219,10 @@ public class Gui extends JFrame implements UI {
     setLocation(600, 200);
     setVisible(true);
   } 
+
+  public Gui(RedTongue red) {
+    this(red, "");
+  }
 
   public Progress getProg() {
     return prog;

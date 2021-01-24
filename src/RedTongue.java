@@ -8,9 +8,17 @@ public class RedTongue {
   private Finder f = null;
   private Host h = null;
 
+  public RedTongue(String name) {
+    if (name != "UnknownUser") {
+      ui = new Gui(this, name);
+    } else {
+      ui = new Gui(this);
+    }
+    this.name = name;
+  }
+
   public RedTongue() {
-    ui = new Gui(this);
-    name = "UnknownUser";
+    this("UnknownUser");
   }
 
   public void start(boolean mode) {
@@ -56,6 +64,10 @@ public class RedTongue {
     }
   }
 
+  public void updateName(String name) {
+    this.name = name;
+  }
+
   //<----------- Helper Functions ------------>
   private void newFinder(boolean mode) {
     if (mode == FileTransfer.SEND) {
@@ -66,9 +78,10 @@ public class RedTongue {
   }
 
   public static void main(String[] args) {
-    RedTongue r = new RedTongue();
     if (args.length == 1) {
-      r.name = args[0];
+      RedTongue r = new RedTongue(args[0]);
+    } else {
+      RedTongue r = new RedTongue();
     }
   }
 }
