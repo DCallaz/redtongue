@@ -41,13 +41,13 @@ public class FileTransfer {
 		}
 	}
 
-	private void send(TCP t) {
+	private void send(TCP t, Progress prog) {
 		byte[] array = new byte[500000000];
 		int size = 0;
 		try {
 			int reps = (int)(f.length()/array.length)+1;
+      prog.start(reps);
 			t.sendSize(reps);
-			TuiProgress prog = new TuiProgress(reps);
 			while ((size = f.read(array)) > 0) {
 				t.send(array, size, prog, 1024);
 				prog.incRep();
@@ -59,13 +59,13 @@ public class FileTransfer {
 		}
 	}
 
-	private void recv(TCP t) {
+	private void recv(TCP t, Progress prog) {
 		byte[] array;
 		int reps = t.recvSize();
 		System.out.println("Reps: "+reps);
+    prog.start(reps);
 		int i = 0;
 		try {
-			TuiProgress prog = new TuiProgress(reps);
 			while (i < reps) {
 				array = t.recv(prog);
 				f.write(array);
@@ -80,13 +80,13 @@ public class FileTransfer {
 		}
 	}
 
-	public static void transfer(boolean send_recv, String file, TCP t)
+	public static void transfer(boolean send_recv, String file, TCP t, Progress p)
       throws FileNotFoundException {
 		FileTransfer f = new FileTransfer(send_recv, file, t);
 		if (f.mode == SEND) {
-			f.send(t);
+			f.send(t, p);
 		} else {
-			f.recv(t);
+			f.recv(t, p);
 		}
 	}
 
@@ -112,7 +112,7 @@ public class FileTransfer {
 
     try {
       TCP t = getTCP(mode);
-		  FileTransfer.transfer(mode, file, t);
+		  FileTransfer.transfer(mode, file, t, new TuiProgress());
       t.close();
     } catch (FileNotFoundException e) {
       System.out.println("Could not find file "+e.getMessage());

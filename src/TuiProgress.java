@@ -7,13 +7,13 @@ public class TuiProgress implements Progress {
 	public TuiProgress() {
 		this.reps = 1;
 		this.fragment = 100;
-		System.out.println("Percent complete: ");
 	}
 
-	public TuiProgress(int reps) {
+  public void start(int reps) {
+		System.out.println("Percent complete: ");
 		this.reps = reps;
 		this.fragment = 100/reps;
-	}
+  }
 
 	public void updateProgress(short percent) {
 		if (currentRep == reps -1 && percent == 100) {
@@ -40,7 +40,8 @@ public class TuiProgress implements Progress {
 		for (short i=1; i<=100; i++) {
 			t1.updateProgress(i);
 		}
-		t1 = new TuiProgress(4);
+		t1 = new TuiProgress();
+    t1.start(4);
 		System.out.println("Compounded progress:");
 		for (short j=0; j<4; j++) {
 			for (short i=0; i<=100; i += 4) {

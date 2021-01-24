@@ -45,7 +45,7 @@ public class RedTongue {
     ui.display(UI.INFO, "Starting transfer...");
     try {
       ui.changeMode(Mode.TRANSFER);
-      FileTransfer.transfer(mode, path, h.getTCP());
+      FileTransfer.transfer(mode, path, h.getTCP(), ui.getProg());
     } catch (FileNotFoundException e) {
       System.out.println("File \""+path+"\" not found.");
     }

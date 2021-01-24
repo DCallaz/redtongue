@@ -175,4 +175,8 @@ public class Tui implements UI {
     temp = null;
     return ret;
   }
+
+  public Progress getProg() {
+    return new TuiProgress();
+  }
 }

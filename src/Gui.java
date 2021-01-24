@@ -3,6 +3,7 @@ import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.JPanel;
 import javax.swing.JLabel;
+import javax.swing.JTextField;
 import javax.swing.BorderFactory;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -16,6 +17,8 @@ import java.awt.event.MouseEvent;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.JOptionPane;
+import javax.swing.JDialog;
+import javax.swing.JProgressBar;
 
 public class Gui extends JFrame implements UI {
   private static Gui theGui;
@@ -33,7 +36,9 @@ public class Gui extends JFrame implements UI {
 
   private JPanel pairPanel;
   private JPanel filesPanel;
+
   private JPanel transferPanel;
+  private GuiProgress prog;
 
   public Gui(RedTongue red) {
     super("Redtongue");
@@ -160,6 +165,10 @@ public class Gui extends JFrame implements UI {
     GridBagLayout gbtransferPanel = new GridBagLayout();
     GridBagConstraints gbctransferPanel = new GridBagConstraints();
     transferPanel.setLayout(gbtransferPanel);
+
+    prog = new GuiProgress();
+    transferPanel.add(prog);
+
     tabbedPane.addTab("Transfer",transferPanel);
     tabbedPane.setEnabledAt(3, false);
 
@@ -181,6 +190,10 @@ public class Gui extends JFrame implements UI {
     setLocation(600, 200);
     setVisible(true);
   } 
+
+  public Progress getProg() {
+    return prog;
+  }
 
   public void display(char type, String s) {
     switch (type) {
@@ -218,7 +231,14 @@ public class Gui extends JFrame implements UI {
         System.err.println(s);
         break;
       case UI.POPUP:
-        JOptionPane.showMessageDialog(null, s);
+        JOptionPane j = new JOptionPane(s);
+        Thread t = new Thread(new Runnable() {
+          @Override
+          public void run() {
+            JOptionPane.showMessageDialog(null, s, "Redtongue - Pair number", 0);
+          }
+        });
+        t.start();
         break;
       default:
         System.out.println(s);
@@ -251,9 +271,60 @@ public class Gui extends JFrame implements UI {
         pairPanel.add(info);
         break;
       case FILE_S:
+        tabbedPane.setEnabledAt(2, true);
+        tabbedPane.setSelectedIndex(2);
+        JLabel file = new JLabel(
+            "Enter the file location of the file you would like to send:");
+        filesPanel.removeAll();
+        filesPanel.add(file);
+        JTextField fileInput = new JTextField();
+        JButton send = new JButton("send");
+        send.addActionListener(new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent arg0) {
+            if (red != null) {
+              Thread t = new Thread(new Runnable() {
+                public void run() {
+                  red.transfer(fileInput.getText());
+                }
+              });
+              t.start();
+            }
+          }
+        });
+        filesPanel.add(fileInput);
+        filesPanel.add(send);
         break;
       case FILE_R:
+        tabbedPane.setEnabledAt(2, true);
+        tabbedPane.setSelectedIndex(2);
+        file = new JLabel("Enter a file location if you would like to change "+
+            "the save location\n\telse press enter:");
+        filesPanel.removeAll();
+        filesPanel.add(file);
+        fileInput = new JTextField();
+        send = new JButton("send");
+        send.addActionListener(new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent arg0) {
+            if (red != null) {
+              Thread t = new Thread(new Runnable() {
+                public void run() {
+                  red.transfer(fileInput.getText());
+                }
+              });
+              t.start();
+            }
+          }
+        });
+        filesPanel.add(fileInput);
+        filesPanel.add(send);
         break;
+      case TRANSFER:
+        tabbedPane.setEnabledAt(3, true);
+        tabbedPane.setSelectedIndex(3);
+        break;
+
       default:
         //TODO: error
     }

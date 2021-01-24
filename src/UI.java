@@ -8,4 +8,5 @@ public interface UI {
   public void display(char type, String s); 
   public void changeMode(Mode mode);
   public String getInput(String message);
+  public Progress getProg();
 }
