@@ -1,4 +1,5 @@
 import java.io.FileNotFoundException;
+import java.io.File;
 
 public class RedTongue {
 
@@ -7,6 +8,7 @@ public class RedTongue {
   private String name;
   private Finder f = null;
   private Host h = null;
+  private File default_file = null;
 
   public RedTongue(String name) {
     if (name != "UnknownUser") {
@@ -19,6 +21,14 @@ public class RedTongue {
 
   public RedTongue() {
     this("UnknownUser");
+  }
+
+  public void setDefaultFile(File newDefault) {
+    default_file = newDefault;
+  }
+
+  public File getDefaultFile() {
+    return default_file;
   }
 
   public void start(boolean mode) {
@@ -49,11 +59,11 @@ public class RedTongue {
     ui.changeMode(Mode.FILE_S);
   }
 
-  public void transfer(String path) {
+  public void transfer(File path) {
     ui.display(UI.INFO, "Starting transfer...");
     try {
       ui.changeMode(Mode.TRANSFER);
-      FileTransfer.transfer(mode, path, h.getTCP(), ui.getProg());
+      FileTransfer.transfer(this, mode, path, h.getTCP(), ui.getProg());
     } catch (FileNotFoundException e) {
       System.out.println("File \""+path+"\" not found.");
     }

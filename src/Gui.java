@@ -5,15 +5,6 @@ import javax.swing.JPanel;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 import javax.swing.BorderFactory;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import javax.swing.JTabbedPane;
-import javax.swing.JButton;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.JOptionPane;
@@ -22,6 +13,17 @@ import javax.swing.JProgressBar;
 import javax.swing.JMenuBar;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
+import javax.swing.JFileChooser;
+import javax.swing.JTabbedPane;
+import javax.swing.JButton;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.io.File;
 
 public class Gui extends JFrame implements UI {
   private static Gui theGui;
@@ -43,6 +45,8 @@ public class Gui extends JFrame implements UI {
 
   private JPanel transferPanel;
   private GuiProgress prog;
+
+  private volatile File[] selected;
 
   public Gui(RedTongue red, String name) {
     super("Redtongue");
@@ -307,50 +311,107 @@ public class Gui extends JFrame implements UI {
         tabbedPane.setEnabledAt(2, true);
         tabbedPane.setSelectedIndex(2);
         JLabel file = new JLabel(
-            "Enter the file location of the file you would like to send:");
-        filesPanel.removeAll();
-        filesPanel.add(file);
-        JTextField fileInput = new JTextField();
+            "Choose the file you would like to send:");
+        JButton fileChoose = new JButton("Choose file");
+        JLabel selectPrint = new JLabel("No file selected");
+        JFileChooser fileInput;
+        if (red.getDefaultFile() != null) {
+          fileInput = new JFileChooser(red.getDefaultFile());
+        } else {
+          fileInput = new JFileChooser();
+        }
+        fileInput.setMultiSelectionEnabled(true);
+        fileInput.setFileSelectionMode(JFileChooser.FILES_ONLY);
+        fileChoose.addActionListener(new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent arg0) {
+            fileInput.showDialog(null, "Select");
+            selected = fileInput.getSelectedFiles();
+            if (selected.length > 0) {
+              selectPrint.setText(printNames());
+              filesPanel.repaint();
+              filesPanel.revalidate();
+            }
+          }
+        });
+        //JTextField fileInput = new JTextField();
         JButton send = new JButton("send");
         send.addActionListener(new ActionListener() {
           @Override
           public void actionPerformed(ActionEvent arg0) {
-            if (red != null) {
+            if (red != null && selected != null) {
               Thread t = new Thread(new Runnable() {
                 public void run() {
-                  red.transfer(fileInput.getText());
+                  try {
+                    for (int i=0; i<selected.length; i++) {
+                      red.transfer(fileInput.getSelectedFile());
+                    }
+                  } catch (Exception e) {
+                    e.printStackTrace();
+                  }
                 }
               });
               t.start();
             }
           }
         });
-        filesPanel.add(fileInput);
+        filesPanel.removeAll();
+        filesPanel.add(file);
+        filesPanel.add(fileChoose);
+        filesPanel.add(selectPrint);
         filesPanel.add(send);
         break;
       case FILE_R:
+        this.selected = null;
         tabbedPane.setEnabledAt(2, true);
         tabbedPane.setSelectedIndex(2);
-        file = new JLabel("Enter a file location if you would like to change "+
-            "the save location\n\telse press enter:");
-        filesPanel.removeAll();
-        filesPanel.add(file);
-        fileInput = new JTextField();
-        send = new JButton("send");
+        file = new JLabel("Choose a location if you would like to change "+
+            "the save location\n\t(else default location will be used)");
+        if (red != null && red.getDefaultFile() != null) {
+          fileInput = new JFileChooser(red.getDefaultFile());
+        } else {
+          fileInput = new JFileChooser();
+        }
+        JButton folderChoose = new JButton("Choose location");
+        selectPrint = new JLabel("No file selected");
+        fileInput.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        folderChoose.addActionListener(new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent arg0) {
+            fileInput.showDialog(null, "Select");
+            selected = new File[1];
+            selected[0] = fileInput.getSelectedFile();
+            selectPrint.setText(printNames());
+            filesPanel.repaint();
+            filesPanel.revalidate();
+          }
+        });
+        send = new JButton("next");
         send.addActionListener(new ActionListener() {
           @Override
           public void actionPerformed(ActionEvent arg0) {
             if (red != null) {
               Thread t = new Thread(new Runnable() {
                 public void run() {
-                  red.transfer(fileInput.getText());
+                  try {
+                    if (selected != null && selected.length > 0) {
+                      red.transfer(selected[0]);
+                    } else {
+                      red.transfer(null);
+                    }
+                  } catch (Exception e) {
+                    e.printStackTrace();
+                  }
                 }
               });
               t.start();
             }
           }
         });
-        filesPanel.add(fileInput);
+        filesPanel.removeAll();
+        filesPanel.add(file);
+        filesPanel.add(folderChoose);
+        filesPanel.add(selectPrint);
         filesPanel.add(send);
         break;
       case TRANSFER:
@@ -371,6 +432,15 @@ public class Gui extends JFrame implements UI {
     } catch (Exception e) {
       return "-1";
     }
+  }
+
+  private String printNames() {
+    String ret = "";
+    for (int i=0; i<selected.length; i++) {
+      String name = selected[i].getName();
+      ret += name + ",";
+    }
+    return ret.substring(0, ret.length()-1);
   }
 
   public static void main(String args[]) {

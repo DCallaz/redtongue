@@ -1,6 +1,7 @@
 import java.util.Scanner;
 import java.util.NoSuchElementException;
 import java.util.function.Consumer;
+import java.io.File;
 
 public class Tui implements UI {
 
@@ -97,7 +98,7 @@ public class Tui implements UI {
           case FILE_S:
           case FILE_R:
             System.out.println("Input received");
-            exe = () -> red.transfer(s);
+            exe = () -> red.transfer(new File(s));
             break;
           default:
             System.out.println("ERROR: no such mode "+mode);

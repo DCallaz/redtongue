@@ -11,29 +11,28 @@ public class FileTransfer {
 	private boolean mode;
 	private RandomAccessFile f;
 
-	private FileTransfer(boolean send_recv, String file, TCP t) throws FileNotFoundException {
+	private FileTransfer(RedTongue red, boolean send_recv, File file, TCP t) throws FileNotFoundException {
 		this.mode = send_recv;
 		if (mode == SEND) {
-      t.sendName(file);
+      t.sendName(file.getName());
 			//open file for read
       f = new RandomAccessFile(file, "r");
 		} else {
       String fname = t.recvName();
-      if (file == null || file.equals("")) {
-        file = fname;
-      } else {
-        File path = new File(file);
-        File f = new File(path.getParent(), fname);
-        try {
-          file = f.getCanonicalPath();
-        } catch(IOException e) {
-          System.out.println(e);
+      if (file == null) {
+        if (red != null && red.getDefaultFile() != null) {
+          file = new File(red.getDefaultFile(), fname);
+        } else {
+          file = new File(fname);
         }
+      } else if (file.isFile()) {
+        file = new File(file.getParent(), fname);
+      } else {
+        file = new File(file, fname);
       }
 			//open file for write
 			try {
-				File f = new File(file);
-				Files.deleteIfExists(f.toPath());
+				Files.deleteIfExists(file.toPath());
         this.f = new RandomAccessFile(file, "rw");
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -80,9 +79,9 @@ public class FileTransfer {
 		}
 	}
 
-	public static void transfer(boolean send_recv, String file, TCP t, Progress p)
+	public static void transfer(RedTongue red, boolean send_recv, File file, TCP t, Progress p)
       throws FileNotFoundException {
-		FileTransfer f = new FileTransfer(send_recv, file, t);
+		FileTransfer f = new FileTransfer(red, send_recv, file, t);
 		if (f.mode == SEND) {
 			f.send(t, p);
 		} else {
@@ -102,9 +101,9 @@ public class FileTransfer {
 		int modei = Integer.parseInt(args[0]);
 		boolean mode = (modei == 0) ? RECV : SEND;
 
-    String file = null;
+    File file = null;
     if (args.length >= 2) {
-      file = args[1];
+      file = new File(args[1]);
     } else if (args.length < 2 && mode == SEND) {
       System.out.println("NOTE: Sender needs to specify a file to send");
       System.exit(0);
@@ -112,7 +111,7 @@ public class FileTransfer {
 
     try {
       TCP t = getTCP(mode);
-		  FileTransfer.transfer(mode, file, t, new TuiProgress());
+		  FileTransfer.transfer(null, mode, file, t, new TuiProgress());
       t.close();
     } catch (FileNotFoundException e) {
       System.out.println("Could not find file "+e.getMessage());
