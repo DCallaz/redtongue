@@ -199,9 +199,9 @@ public class Gui extends JFrame implements UI {
     JMenuBar menuBar = new JMenuBar();
 
     JMenu menu = new JMenu("Edit");
-    JMenuItem item = new JMenuItem("Change name");
     Gui g = this;
-    item.addActionListener(new ActionListener() {
+    JMenuItem nameChange = new JMenuItem("Change name");
+    nameChange.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
         String name1 = JOptionPane.showInputDialog(null, "Enter new name:", "Name change", 0);
@@ -210,7 +210,24 @@ public class Gui extends JFrame implements UI {
         g.name = name1;
       }
     });
-    menu.add(item);
+    menu.add(nameChange);
+
+    JMenuItem fileChange = new JMenuItem("Change default save location");
+    fileChange.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        JFileChooser j;
+        if (red != null && red.getDefaultFile() != null) {
+          j = new JFileChooser(red.getDefaultFile());
+        } else {
+          j = new JFileChooser();
+        }
+        j.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        j.showDialog(null, "set");
+        red.setDefaultFile(j.getSelectedFile());
+      }
+    });
+    menu.add(fileChange);
 
     menuBar.add(menu);
 
