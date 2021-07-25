@@ -20,15 +20,18 @@ public class TCP {
 		if (mode == SEND) {
 			try {
 				sock = new Socket(host, port);
+        sock.setReuseAddress(true);
 			} catch (IOException e) {
 				System.out.println("Unable to open sender socket: "+e);
 			}
 		} else {
 			try {
 				serv = new ServerSocket(port);
+        serv.setReuseAddress(true);
 				sock = serv.accept();
+        sock.setReuseAddress(true);
 			} catch (IOException e) {
-				System.out.println("Unable to open server (receiver) socket.");
+				System.out.println("Unable to open server (receiver) socket. "+e);
 			}
 		}
 		try {
@@ -80,14 +83,22 @@ public class TCP {
 		//System.out.println("Size: "+size+" Chunk: "+chunk);
 		byte[] ret = new byte[size];
 		while (index + chunk < size) {
-			in.read(ret, index, chunk);
+			int read = 0;
+      while (read < chunk) {
+        read += in.read(ret, index+read, chunk-read);
+      }
+      //in.read(ret, index, chunk);
 			index += chunk;
 			if (prog != null) {
 				double div = (double)index/size;
 				prog.updateProgress((short)(div*100));
 			}
 		}
-		in.read(ret, index, size-index);
+    int read = 0;
+    while (read < size-index) {
+      read += in.read(ret, index+read, (size-index)-read);
+    }
+		//in.read(ret, index, size-index);
 		if (prog != null) {
 			prog.updateProgress((short)100);
 		}

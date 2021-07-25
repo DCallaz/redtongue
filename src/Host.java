@@ -11,6 +11,10 @@ public class Host {
     this.name = hostName;
   }
 
+  public void close() {
+    t.close();
+  }
+
   public void setPort(int port) {
     this.port = port;
   }

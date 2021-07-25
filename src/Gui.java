@@ -16,6 +16,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JFileChooser;
 import javax.swing.JTabbedPane;
 import javax.swing.JButton;
+import javax.swing.BoxLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -160,16 +161,18 @@ public class Gui extends JFrame implements UI {
     tabbedPane.addTab("Mode",modePanel);
 
     pairPanel = new JPanel();
-    GridBagLayout gbpairPanel = new GridBagLayout();
+    /*GridBagLayout gbpairPanel = new GridBagLayout();
     GridBagConstraints gbcpairPanel = new GridBagConstraints();
-    pairPanel.setLayout(gbpairPanel);
+    pairPanel.setLayout(gbpairPanel);*/
+    pairPanel.setLayout(new BoxLayout(pairPanel, BoxLayout.Y_AXIS));
     tabbedPane.addTab("Pair",pairPanel);
     tabbedPane.setEnabledAt(1, false);
 
     filesPanel = new JPanel();
-    GridBagLayout gbfilesPanel = new GridBagLayout();
+    /*GridBagLayout gbfilesPanel = new GridBagLayout();
     GridBagConstraints gbcfilesPanel = new GridBagConstraints();
-    filesPanel.setLayout(gbfilesPanel);
+    filesPanel.setLayout(gbfilesPanel);*/
+    filesPanel.setLayout(new BoxLayout(filesPanel, BoxLayout.Y_AXIS));
     tabbedPane.addTab("Files",filesPanel);
     tabbedPane.setEnabledAt(2, false);
 
@@ -369,6 +372,9 @@ public class Gui extends JFrame implements UI {
                 }
               });
               t.start();
+            } else {
+              JOptionPane.showMessageDialog(null, "You must select a file to send",
+                  "Warning - select a file to send", JOptionPane.WARNING_MESSAGE);
             }
           }
         });
@@ -396,11 +402,13 @@ public class Gui extends JFrame implements UI {
           @Override
           public void actionPerformed(ActionEvent arg0) {
             fileInput.showDialog(null, "Select");
-            selected = new File[1];
-            selected[0] = fileInput.getSelectedFile();
-            selectPrint.setText(printNames());
-            filesPanel.repaint();
-            filesPanel.revalidate();
+            if (fileInput.getSelectedFile() != null) {
+              selected = new File[1];
+              selected[0] = fileInput.getSelectedFile();
+              selectPrint.setText(printNames());
+              filesPanel.repaint();
+              filesPanel.revalidate();
+            }
           }
         });
         send = new JButton("next");

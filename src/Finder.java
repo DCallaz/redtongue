@@ -21,6 +21,7 @@ public class Finder {
     try {
       group = InetAddress.getByName("224.0.113.0");
         sock = new DatagramSocket(4447);
+        sock.setReuseAddress(true);
     } catch (UnknownHostException e) {
       System.out.println("Group not valid");
     } catch (SocketException e) {
@@ -35,6 +36,7 @@ public class Finder {
       group = InetAddress.getByName("224.0.113.0");
       MulticastSocket sock = new MulticastSocket(4446);
       sock.joinGroup(group);
+      sock.setReuseAddress(true);
       this.sock = sock;
       Host mine = new Host(InetAddress.getLocalHost(), name);
       Thread t = new Thread(new Runnable() {

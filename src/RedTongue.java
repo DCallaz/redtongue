@@ -37,6 +37,9 @@ public class RedTongue {
     } else if (this.mode != mode) {
       ui.display(UI.INFO, "New finder starting");
       f.close();
+      if (h != null) {
+        h.close();
+      }
       newFinder(mode);
     }
     this.mode = mode;

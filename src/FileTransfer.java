@@ -41,7 +41,7 @@ public class FileTransfer {
 	}
 
 	private void send(TCP t, Progress prog) {
-		byte[] array = new byte[500000000];
+		byte[] array = new byte[50000000];
 		int size = 0;
 		try {
 			int reps = (int)(f.length()/array.length)+1;
