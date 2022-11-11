@@ -38,7 +38,7 @@ public class Finder {
       sock.joinGroup(group);
       sock.setReuseAddress(true);
       this.sock = sock;
-      Host mine = new Host(InetAddress.getLocalHost(), name);
+      final Host mine = new Host(InetAddress.getLocalHost(), name);
       Thread t = new Thread(new Runnable() {
         @Override
         public void run() {
@@ -211,7 +211,7 @@ public class Finder {
     lock = false;
   }
 
-  public static void main(String[] args) {
+  /*public static void main(String[] args) {
 		if (args.length < 1) {
 			System.out.println("USAGE: Finder <mode 0/1> [<name>]");
 			System.exit(0);
@@ -246,5 +246,5 @@ public class Finder {
         System.exit(0);
       }
     }
-  }
+  }*/
 }

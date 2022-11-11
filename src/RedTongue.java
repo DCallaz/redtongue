@@ -23,6 +23,11 @@ public class RedTongue {
     this("UnknownUser");
   }
 
+  public RedTongue(UI ui, String name) {
+    this.ui = ui;
+    this.name = name;
+  }
+
   public void setDefaultFile(File newDefault) {
     default_file = newDefault;
   }
@@ -68,6 +73,7 @@ public class RedTongue {
       ui.changeMode(Mode.TRANSFER);
       FileTransfer.transfer(this, mode, path, h.getTCP(), ui.getProg());
     } catch (FileNotFoundException e) {
+      e.printStackTrace();
       System.out.println("File \""+path+"\" not found.");
     }
     if (mode == FileTransfer.SEND) {

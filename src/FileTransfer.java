@@ -32,7 +32,12 @@ public class FileTransfer {
       }
 			//open file for write
 			try {
-				Files.deleteIfExists(file.toPath());
+        if (file.exists()) {
+          file.delete();
+        }
+				//Files.deleteIfExists(file.toPath());
+        //file.mkdirs();
+        file.createNewFile();
         this.f = new RandomAccessFile(file, "rw");
 			} catch (IOException e) {
 				e.printStackTrace();
