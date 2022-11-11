@@ -5,22 +5,27 @@ public class RedTongue {
 
   private boolean mode;
   private UI ui;
-  private String name;
   private Finder f = null;
   private Host h = null;
-  private File default_file = null;
+  private Config config;
+  private String name;
 
   public RedTongue(String name) {
-    if (name != "UnknownUser") {
-      ui = new Gui(this, name);
+    this.config = new Config("config.txt");
+    if (name == null) {
+      this.name = config.name();
+    } else {
+      this.name = name;
+    }
+    if (this.name != "UnknownUser") {
+      ui = new Gui(this, this.name);
     } else {
       ui = new Gui(this);
     }
-    this.name = name;
   }
 
   public RedTongue() {
-    this("UnknownUser");
+    this(null);
   }
 
   public RedTongue(UI ui, String name) {
@@ -29,11 +34,11 @@ public class RedTongue {
   }
 
   public void setDefaultFile(File newDefault) {
-    default_file = newDefault;
+    config.set_default_file(newDefault);
   }
 
   public File getDefaultFile() {
-    return default_file;
+    return config.default_file();
   }
 
   public void start(boolean mode) {
@@ -84,6 +89,7 @@ public class RedTongue {
   }
 
   public void updateName(String name) {
+    config.set_name(name);
     this.name = name;
   }
 
